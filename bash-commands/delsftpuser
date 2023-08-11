@@ -4,16 +4,16 @@ read -p "Enter the username of the SFTP account to delete: " username
 
 if [[ -z "$username" ]]; then
   echo "Error: Username cannot be empty."
-  exit 1
+  return 1
 fi
 
 if ! id "$username" &>/dev/null; then
   echo "Error: The username $username does not exist."
-  exit 1
+  return 1
 fi
 
 # Delete the user and their home directory
-userdel -r "$username"
+userdel -r -f "$username"
 
 # Remove the section added to sshd_config
 awk "/# Configuration for user: $username/,/# End of configuration for user: $username/"'{next}1' /etc/ssh/sshd_config > tmp && mv tmp /etc/ssh/sshd_config

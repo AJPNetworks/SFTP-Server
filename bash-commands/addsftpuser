@@ -8,17 +8,17 @@ read -p "Enter the username for the SFTP account: " username
 
 if [[ -z "$username" ]]; then
   echo "Error: Username cannot be empty."
-  exit 1
+  return 1
 fi
 
 if [[ "$username" == *' '* ]]; then
   echo "Error: Username cannot contain spaces."
-  exit 1
+  return 1
 fi
 
 if id "$username" &>/dev/null; then
   echo "Error: The username $username already exists."
-  exit 1
+  return 1
 fi
 
 read -s -p "Enter the password for the SFTP account (leave blank for auto-generated): " password
@@ -31,7 +31,7 @@ fi
 
 if [[ ${#password} -lt 8 ]]; then
   echo "Error: Password must be at least 8 characters."
-  exit 1
+  return 1
 fi
 
 read -s -p "Retype the password for confirmation (skip if auto-generated): " password_confirm
@@ -41,7 +41,7 @@ if [[ -z "$password_confirm" && -n "$password" ]]; then
   :
 elif [[ "$password" != "$password_confirm" ]]; then
   echo "Error: Passwords do not match."
-  exit 1
+  return 1
 fi
 
 echo ""
