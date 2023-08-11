@@ -1,0 +1,126 @@
+#!/bin/bash
+
+generate_random_password() {
+    openssl rand -base64 24 | tr -d '/' | cut -c1-16
+}
+
+read -p "Enter the username for the SFTP account: " username
+
+if [[ -z "$username" ]]; then
+  echo "Error: Username cannot be empty."
+  exit 1
+fi
+
+if [[ "$username" == *' '* ]]; then
+  echo "Error: Username cannot contain spaces."
+  exit 1
+fi
+
+if id "$username" &>/dev/null; then
+  echo "Error: The username $username already exists."
+  exit 1
+fi
+
+read -s -p "Enter the password for the SFTP account (leave blank for auto-generated): " password
+echo
+
+if [[ -z "$password" ]]; then
+  password=$(generate_random_password)
+  echo "Auto-generated password: $password"
+fi
+
+if [[ ${#password} -lt 8 ]]; then
+  echo "Error: Password must be at least 8 characters."
+  exit 1
+fi
+
+read -s -p "Retype the password for confirmation (skip if auto-generated): " password_confirm
+echo
+
+if [[ -z "$password_confirm" && -n "$password" ]]; then
+  :
+elif [[ "$password" != "$password_confirm" ]]; then
+  echo "Error: Passwords do not match."
+  exit 1
+fi
+
+echo ""
+
+useradd -m "$username"
+echo "$username:$password" | chpasswd >> /dev/null
+
+
+# Add a name to the account
+read -p "Full name for the account: " fullname
+
+# Ensure the description is 24 characters or less
+while true; do
+    read -p "Short description for the account (Max 24 characters): " desc
+    if [ ${#desc} -le 24 ]; then
+        break
+    else
+        echo "Description must be 24 characters or less. Please try again."
+    fi
+done
+
+if [ -z "$desc" ]; then
+    usermod -c "$fullname" $username
+else
+    usermod -c "$fullname, $desc" $username
+fi
+
+# Variables
+USER_DIR="/home/${username}"
+PUBLIC_DIR="${USER_DIR}/public"
+INBOUND_DIR="${PUBLIC_DIR}/Inbound"
+OUTBOUND_DIR="${PUBLIC_DIR}/Outbound"
+
+# Create directories and set permissions
+mkdir -p "$INBOUND_DIR"
+mkdir -p "$OUTBOUND_DIR"
+
+# Set ownership and permissions for chroot and related directories
+chown root:root "$PUBLIC_DIR"
+chmod 755 "$PUBLIC_DIR"
+
+chown $username:$username "$INBOUND_DIR"
+chmod 700 "$INBOUND_DIR"
+
+chown root:root "$OUTBOUND_DIR"
+chmod 755 "$OUTBOUND_DIR"
+
+chown root:root "$USER_DIR"
+chown root:root /home
+
+# Update SSH configuration to force only SFTP and restrict SSH for the user
+cat <<EOF >> /etc/ssh/sshd_config
+
+# Configuration for user: $username
+Match User $username
+ForceCommand internal-sftp
+ChrootDirectory $PUBLIC_DIR
+PasswordAuthentication yes
+PermitRootLogin no
+AllowTcpForwarding no
+PermitTTY no
+X11Forwarding no
+# End of configuration for user: $username
+
+EOF
+
+
+# Restart SSH service to apply changes
+service ssh restart
+
+
+
+
+echo
+echo "User ${username} added"
+echo
+echo "The password set is ${password}"
+echo
+
+
+
+
