@@ -70,8 +70,8 @@ else
 fi
 
 # Variables
-USER_DIR="/home/${username}"
-PUBLIC_DIR="${USER_DIR}/public"
+USER_DIR="/home/sftp/${username}"
+PUBLIC_DIR="${USER_DIR}"
 INBOUND_DIR="${PUBLIC_DIR}/Inbound"
 OUTBOUND_DIR="${PUBLIC_DIR}/Outbound"
 
