@@ -112,15 +112,8 @@ EOF
 # Restart SSH service to apply changes
 service ssh restart
 
-
-
-
 echo
 echo "User ${username} added"
 echo
 echo "The password set is ${password}"
 echo
-
-
-
-
